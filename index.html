@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MindAR — AR по маркеру</title>
+  <title>MindAR — проверка трекинга (куб)</title>
 
   <!-- 1. A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -35,7 +35,7 @@
 
   <!-- Основная AR-сцена -->
   <a-scene
-    mindar-image="imageTargetSrc: targets.mind; uiScanning: no; uiLoading: no; uiError: no"
+    mindar-image="imageTargetSrc: ./targets.mind; uiScanning: no; uiLoading: no; uiError: no"
     color-space="sRGB"
     renderer="colorManagement: true, physicallyCorrectLights"
     vr-mode-ui="enabled: false"
@@ -48,19 +48,36 @@
     <!-- Камера -->
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- Якорь: сюда привяжется модель, когда маркер найден -->
+    <!-- Якорь: сюда привязывается объект, когда маркер найден -->
     <a-entity mindar-image-target="targetIndex: 0">
 
-      <!-- 3D-модель в формате .glb -->
+      <!-- 🔴 Красный куб для проверки трекинга -->
+      <a-box
+        position="0 0.1 0"
+        scale="0.1 0.1 0.1"
+        color="red">
+      </a-box>
+
+      <!-- Ваша модель (закомментирована, включим позже) -->
+      <!--
       <a-gltf-model
-        src="models/Fitness_Character.glb"
-        position="0 0.5 0"
-        scale="0.01 0.01 0.01"
+        src="./models/Fitness_Character.glb"
+        position="0 0.1 0"
+        scale="0.5 0.5 0.5"
         rotation="0 0 0">
       </a-gltf-model>
+      -->
 
     </a-entity>
   </a-scene>
+
+  <script>
+    const scene = document.querySelector('a-scene');
+    scene.addEventListener('arReady', () => {
+      const hint = document.getElementById('hint');
+      if (hint) hint.style.display = 'none';
+    });
+  </script>
 
 </body>
 </html>
