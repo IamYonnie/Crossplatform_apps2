@@ -2,82 +2,134 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WebAR — Image Tracking (MindAR)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>WebAR — Image Tracking (MindAR + A-Frame)</title>
 
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <!-- MindAR (image tracking) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
-      height: 100%;
       overflow: hidden;
-      font-family: system-ui, sans-serif;
       background: #000;
+      font-family: system-ui, sans-serif;
     }
-
-    a-scene,
-    a-scene > canvas,
-    a-scene > video,
-    .mindar-ui-overlay,
-    .mindar-ui-scanning,
-    .mindar-ui-loading {
-      width: 100% !important;
-      height: 100% !important;
-      max-width: 100% !important;
-      max-height: 100% !important;
-      display: block !important;
-    }
-
-    .hint {
+    /* Подсказка поверх сцены */
+    #hint {
       position: fixed;
       bottom: 16px;
       left: 0;
       right: 0;
       text-align: center;
-      font-size: 14px;
       color: #fff;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      font-size: 14px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
       pointer-events: none;
       z-index: 10;
+    }
+    /* Индикатор загрузки */
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: #111;
+      z-index: 20;
+      transition: opacity 0.4s;
     }
   </style>
 </head>
 <body>
 
+  <div id="loading">Загрузка AR-сцены…</div>
+  <div id="hint">Наведите камеру на маркер, чтобы увидеть 3D-модель</div>
+
   <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes;"
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no; uiScanning: no;"
     color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights"
+    renderer="colorManagement: true, physicallyCorrectLights: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
     embedded
   >
 
+    <!-- Освещение сцены -->
     <a-assets>
+      <!-- Модель gITF/GLB. Замените путь на свою -->
       <a-asset-item id="model" src="./Fitness_Character.glb"></a-asset-item>
     </a-assets>
 
-    <a-light type="ambient" color="#ffffff" intensity="1.2"></a-light>
-    <a-light type="directional" color="#ffffff" intensity="0.8" position="1 2 1"></a-light>
+    <!-- Ambient даёт базовую подсветку, чтобы модель не была чёрной -->
+    <a-entity light="type: ambient; color: #ffffff; intensity: 0.9"></a-entity>
+    <!-- Направленный свет создаёт объём и тени на модели -->
+    <a-entity light="type: directional; color: #ffffff; intensity: 1.2"
+              position="0.5 1 1"></a-entity>
+    <!-- Дополнительный заполняющий свет с другой стороны -->
+    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #444444; intensity: 0.6"></a-entity>
 
+    <!-- Камера A-Frame -->
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
+    <!-- Контейнер трекинга изображения: индекс 0 = первый таргет в targets.mind -->
     <a-entity mindar-image-target="targetIndex: 0">
+
+      <!--
+        Модель размещается относительно маркера.
+        Позиция/масштаб подбираются под конкретную модель и маркер.
+        Здесь: поднимаем на 0.1 м над плоскостью маркера, слегка заглубляем.
+      -->
       <a-gltf-model
+        id="tracked-model"
         src="#model"
-        position="0 0 0"
+        position="0 0.1 0"
         scale="0.5 0.5 0.5"
         rotation="0 0 0"
+        animation-mixer
       ></a-gltf-model>
+
+      <!-- Опционально: лёгкая подсветка-«подиум» под моделью -->
+      <a-circle
+        radius="0.35"
+        color="#00bfff"
+        opacity="0.25"
+        rotation="-90 0 0"
+        position="0 0.001 0"
+      ></a-circle>
+
     </a-entity>
 
   </a-scene>
 
-  <p class="hint">Наведите камеру на маркер</p>
+  <script>
+    // Скрываем экран загрузки, когда сцена готова
+    const scene = document.querySelector('a-scene');
+    const loading = document.getElementById('loading');
+
+    scene.addEventListener('loaded', () => {
+      loading.style.opacity = '0';
+      setTimeout(() => loading.remove(), 400);
+    });
+
+    // Небольшая анимация вращения модели вокруг своей оси
+    // (визуально «оживляет» объект после распознавания)
+    const model = document.querySelector('#tracked-model');
+    let t = 0;
+    function animate() {
+      if (model && model.object3D) {
+        t += 0.005;
+        // Плавное покачивание по Y — не мешает трекингу, но добавляет жизни
+        model.object3D.rotation.y = Math.sin(t) * 0.3;
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
 
 </body>
 </html>
